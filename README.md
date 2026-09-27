@@ -11,6 +11,7 @@
 </p>
 
 > 🔴 **LIVE DEMO STREAM**: Watch the station broadcasting live on Twitch at **[twitch.tv/narendra454545](https://www.twitch.tv/narendra454545)**!
+> **Developer Explanation Video** **https://drive.google.com/file/d/1NuILZLrI7BJdoG0jfRbftUIGXwvp2WVG/view?usp=sharing**
 
 ---
 
