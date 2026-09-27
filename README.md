@@ -16,14 +16,12 @@
 
 ## 🎥 Project Explanation & Demo Video
 
-![Station Walkthrough Preview](assets/demo.gif)
+https://github.com/Narendrareddygithub/ai-powered-24-by-7-radio/releases/download/v1.0.0/demo_video.mp4
 
-<video src="https://raw.githubusercontent.com/Narendrareddygithub/ai-powered-247-radio/main/assets/demo_video.mp4" controls width="100%" poster="assets/static_visual.jpg">
-  Your browser does not support the video tag.
+<video src="https://github.com/Narendrareddygithub/ai-powered-24-by-7-radio/releases/download/v1.0.0/demo_video.mp4" controls="controls" style="max-height: 640px; width: 100%;">
 </video>
 
-> 🎬 **[Download / Watch Full MP4 Demo Video (8.8 MB)](https://raw.githubusercontent.com/Narendrareddygithub/ai-powered-247-radio/main/assets/demo_video.mp4)**
-> *Full 7.8-minute walkthrough video explaining the 24/7 AI Radio architecture, live ingestion, LLM script generation, TTS audio synthesis, and real-time RTMP streaming.*
+> 🎬 *Full 7.8-minute walkthrough video explaining the 24/7 AI Radio architecture, live ingestion, LLM script generation, TTS audio synthesis, and real-time RTMP streaming.*
 
 ---
 
