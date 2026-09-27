@@ -102,6 +102,11 @@ def run_cycle(cycle_num: int) -> bool:
 
 def run_radio_loop():
     """Run the 24/7 autonomous radio station loop forever."""
+    import sys
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
     db.init_db()
     config.require_credentials("GROQ_API_KEY", "STREAM_KEY")
 
