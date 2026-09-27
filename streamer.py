@@ -67,8 +67,7 @@ def stream_show(visual: Path, audio: Path, duration: float,
                  on_exit: callable = None) -> subprocess.Popen:
     """Start the FFmpeg push in the background and return the Popen handle.
 
-    ``on_exit`` (if given) runs in the monitor thread after the push ends, so
-    the Phase 6 loop can kick off the next cycle without polling.
+    Includes automatic retries for transient RTMP socket reset / I/O errors on startup.
     """
     key = config.STREAM_KEY
     if not key:
@@ -80,14 +79,24 @@ def stream_show(visual: Path, audio: Path, duration: float,
     args = _build_args(visual, audio, duration)
     print(f"  streaming {audio.name} ({duration / 60:.1f} min) -> {config.STREAM_URL}")
 
-    proc = subprocess.Popen(
-        [config.FFMPEG, "-hide_banner", "-loglevel", "warning", *args],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
+    proc = None
+    for attempt in range(1, 4):
+        proc = subprocess.Popen(
+            [config.FFMPEG, "-hide_banner", "-loglevel", "warning", *args],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+        # Check for immediate connection failure on startup (within 3 seconds)
+        time.sleep(3.0)
+        if proc.poll() is not None and proc.returncode != 0:
+            _, stderr = proc.communicate()
+            print(f"  [stream] RTMP startup attempt {attempt}/3 failed (rc={proc.returncode}). Retrying in 4s...")
+            time.sleep(4.0)
+        else:
+            break
 
     def _monitor() -> None:
         _, stderr = proc.communicate()

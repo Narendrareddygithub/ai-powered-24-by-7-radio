@@ -83,33 +83,37 @@ def generate_show_script(
 
     client = OpenAI(api_key=config.GROQ_API_KEY, base_url=config.GROQ_BASE_URL)
 
-    try:
-        response = client.chat.completions.create(
-            model=config.GROQ_MODEL,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {
-                    "role": "user",
-                    "content": USER_PROMPT_TEMPLATE.format(
-                        signal_block=_format_signals(signals),
-                        target_words=config.TARGET_WORDS,
-                    ),
-                },
-            ],
-            max_tokens=config.LLM_MAX_TOKENS,
-            temperature=config.LLM_TEMPERATURE,
-        )
-    except Exception as exc:  # noqa: BLE001 — the loop retries next cycle
-        print(f"  [warn] Groq call failed: {type(exc).__name__}: {exc}")
-        return None, []
+    script = None
+    for attempt in range(1, 4):
+        try:
+            response = client.chat.completions.create(
+                model=config.GROQ_MODEL,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {
+                        "role": "user",
+                        "content": USER_PROMPT_TEMPLATE.format(
+                            signal_block=_format_signals(signals),
+                            target_words=config.TARGET_WORDS,
+                        ),
+                    },
+                ],
+                max_tokens=config.LLM_MAX_TOKENS,
+                temperature=config.LLM_TEMPERATURE,
+            )
+            message = response.choices[0].message
+            script = (message.content or "").strip()
+            if script:
+                break
+            print(f"  [warn] Groq returned empty content (attempt {attempt}/3)")
+        except Exception as exc:  # noqa: BLE001 — retry transient connection errors
+            print(f"  [warn] Groq call attempt {attempt}/3 failed: {type(exc).__name__}: {exc}")
+            if attempt < 3:
+                import time
+                time.sleep(4)
 
-    message = response.choices[0].message
-    script = (message.content or "").strip()
-
-    # gpt-oss models can spend the whole budget on internal reasoning and emit
-    # no text at all; treat that as a failed cycle rather than airing silence.
     if not script:
-        print("  [warn] Groq returned empty content (reasoning budget consumed?)")
+        print("  ❌ Groq script generation failed after 3 attempts.")
         return None, []
 
     cited_urls = [sig["source_url"] for sig in signals]
