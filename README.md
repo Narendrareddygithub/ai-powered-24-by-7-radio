@@ -16,9 +16,14 @@
 
 ## 🎥 Project Explanation & Demo Video
 
-https://github.com/user-attachments/assets/demo_video.mp4
+![Station Walkthrough Preview](assets/demo.gif)
 
-> *Watch the full walkthrough video explaining the 24/7 AI Radio architecture, live ingestion, LLM script generation, TTS audio synthesis, and real-time RTMP streaming.*
+<video src="https://raw.githubusercontent.com/Narendrareddygithub/ai-powered-247-radio/main/assets/demo_video.mp4" controls width="100%" poster="assets/static_visual.jpg">
+  Your browser does not support the video tag.
+</video>
+
+> 🎬 **[Download / Watch Full MP4 Demo Video (8.8 MB)](https://raw.githubusercontent.com/Narendrareddygithub/ai-powered-247-radio/main/assets/demo_video.mp4)**
+> *Full 7.8-minute walkthrough video explaining the 24/7 AI Radio architecture, live ingestion, LLM script generation, TTS audio synthesis, and real-time RTMP streaming.*
 
 ---
 
