@@ -14,6 +14,14 @@
 
 ---
 
+## 🎥 Project Explanation & Demo Video
+
+https://github.com/user-attachments/assets/demo_video.mp4
+
+> *Watch the full walkthrough video explaining the 24/7 AI Radio architecture, live ingestion, LLM script generation, TTS audio synthesis, and real-time RTMP streaming.*
+
+---
+
 ## ⚡ Quickstart — Run the Station
 
 1. **Clone & Setup Environment**:
