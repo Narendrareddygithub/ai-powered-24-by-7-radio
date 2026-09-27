@@ -366,8 +366,52 @@ def _port_open(port: int, host: str = "127.0.0.1") -> bool:
 
 
 def smoke_full(c: Checks) -> None:
-    print("\n=== Gates 1-4: full pipeline, no streaming ===")
-    print("  (not implemented yet — Phase 5)")
+    """Gates 1-4: full pipeline end-to-end (ingest -> script -> audio -> db log), no streaming."""
+    import audio_synth
+    import script_gen
+    import ingestion
+
+    print("\n=== Gate 6: full pipeline end-to-end ===")
+
+    db.init_db()
+    ingest_res = ingestion.ingest_all()
+    c.check("ingestion ran cleanly", not ingest_res["errors"])
+
+    signals = db.get_unused_signals(limit=config.MAX_SIGNALS)
+    if not c.check("signals available for show generation", len(signals) >= config.MIN_SIGNALS, f"{len(signals)} signals"):
+        return
+
+    print(f"  generating script with {config.GROQ_MODEL} ...")
+    script, cited = script_gen.generate_show_script(signals)
+    if not c.check("script generated", script is not None):
+        return
+
+    words = script_gen.word_count(script)
+    c.check("script word count valid", 1200 <= words <= 2000, f"{words} words")
+
+    print(f"  synthesizing audio with edge-tts ...")
+    aac_path, duration = audio_synth.synthesize_audio(script)
+    if not c.check("audio synthesized", aac_path is not None and aac_path.exists()):
+        return
+
+    session_id = f"smoke_full_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+    db.log_broadcast(
+        session_id=session_id,
+        transcript=script,
+        cited_urls=cited,
+        llm_model=config.GROQ_MODEL,
+        audio_duration=duration,
+        tts_engine=f"edge-tts ({config.TTS_VOICE})"
+    )
+
+    signal_ids = [s["id"] for s in signals]
+    updated = db.mark_signals_used(signal_ids)
+    c.check("signals marked used in database", updated == len(signal_ids))
+
+    audit = db.get_audit(session_id)
+    c.check("broadcast audit row logged", audit is not None and audit["audio_duration_seconds"] == duration)
+
+    print(f"  Full pipeline verified successfully! Audio: {aac_path.name} ({duration/60:.1f} min)")
 
 
 COMMANDS = {

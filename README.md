@@ -110,12 +110,12 @@ flowchart LR
 |:----------|:-------|
 | 📄 Architecture & scope defined | ✅ Done |
 | 🎨 Visual README + public repo | ✅ Done |
-| 🛰️ Signal ingestion (HN + GitHub) | 🚧 In progress |
-| 🧹 SHA-256 deduplication | 📋 Planned |
-| 🧠 LLM script generation (Groq) | 📋 Planned |
-| 🔊 TTS + AAC rendering | 📋 Planned |
-| 📺 YouTube Live broadcast | 📋 Planned |
-| 🔁 Autonomous 24/7 loop | 📋 Planned |
+| 🛰️ Signal ingestion (HN + GitHub) | ✅ Done |
+| 🧹 SHA-256 deduplication | ✅ Done |
+| 🧠 LLM script generation (Groq) | ✅ Done |
+| 🔊 TTS + AAC rendering | ✅ Done |
+| 📺 Live broadcast (Twitch / YouTube RTMP) | ✅ Done |
+| 🔁 Autonomous 24/7 loop | ✅ Done |
 
 ---
 
