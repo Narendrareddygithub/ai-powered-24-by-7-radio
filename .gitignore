@@ -1,0 +1,20 @@
+# Secrets — never commit
+.env
+
+# Generated broadcast audio
+queue/
+*.aac
+*.mp3
+
+# Local state
+radio.db
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
