@@ -6,11 +6,35 @@
   <img alt="Python"      src="https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white">
   <img alt="Groq"        src="https://img.shields.io/badge/LLM-Groq-F55036?style=for-the-badge">
   <img alt="FFmpeg"      src="https://img.shields.io/badge/Streaming-FFmpeg-007808?style=for-the-badge&logo=ffmpeg&logoColor=white">
-  <img alt="YouTube"     src="https://img.shields.io/badge/Live-YouTube%20Live-FF0000?style=for-the-badge&logo=youtube&logoColor=white">
+  <img alt="Twitch"      src="https://img.shields.io/badge/Live-Twitch.tv-9146FF?style=for-the-badge&logo=twitch&logoColor=white">
   <img alt="Hackathon"   src="https://img.shields.io/badge/Built%20at-Hackathon-FFB000?style=for-the-badge">
 </p>
 
+> 🔴 **LIVE DEMO STREAM**: Watch the station broadcasting live on Twitch at **[twitch.tv/narendra454545](https://www.twitch.tv/narendra454545)**!
+
 ---
+
+## ⚡ Quickstart — Run the Station
+
+1. **Clone & Setup Environment**:
+   ```bash
+   git clone https://github.com/Narendrareddygithub/ai-powered-24-by-7-radio.git
+   cd ai-powered-24-by-7-radio
+   python -m venv .venv
+   .venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
+
+2. **Configure Credentials**:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your GROQ_API_KEY and STREAM_KEY (Twitch / YouTube)
+   ```
+
+3. **Launch Autonomous 24/7 Station**:
+   ```bash
+   python main.py
+   ```
 
 ## 💡 The Big Idea
 
