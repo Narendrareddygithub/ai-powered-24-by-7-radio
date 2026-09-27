@@ -6,8 +6,12 @@ queue/
 *.aac
 *.mp3
 
-# Local state
+# Local state & logs
 radio.db
+*.log
+temp/
+*.crt
+*.key
 
 # Python
 __pycache__/
@@ -18,3 +22,6 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
+
+# Vendored binaries (201MB FFmpeg, 56MB MediaMTX — re-download instead)
+tools/

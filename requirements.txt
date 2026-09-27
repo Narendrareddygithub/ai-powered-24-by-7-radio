@@ -1,0 +1,6 @@
+httpx
+feedparser
+edge-tts
+openai
+python-dotenv
+pillow
