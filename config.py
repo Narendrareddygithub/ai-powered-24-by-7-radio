@@ -45,8 +45,8 @@ GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 
 # --- Signals ----------------------------------------------------------------
 MAX_SIGNALS = 15       # signals requested per cycle
-MIN_SIGNALS = 3        # below this, the cycle is skipped rather than aired thin
-HN_TOP_COUNT = 20
+MIN_SIGNALS = 3        # minimum signals requested
+HN_TOP_COUNT = 50      # expanded over-fetch pool for continuous ingestion
 
 
 # --- Script -----------------------------------------------------------------

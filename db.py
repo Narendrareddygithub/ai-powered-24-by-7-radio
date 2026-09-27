@@ -102,6 +102,24 @@ def get_unused_signals(limit: int = config.MAX_SIGNALS) -> list[dict[str, Any]]:
         conn.close()
 
 
+def get_recent_signals(limit: int = config.MAX_SIGNALS) -> list[dict[str, Any]]:
+    """Newest-first active signals (regardless of is_used) to guarantee 24/7 continuous stream."""
+    conn = _connect()
+    try:
+        rows = conn.execute(
+            """
+            SELECT id, source_url, source_name, title, summary_text
+            FROM raw_signals
+            ORDER BY ingested_at DESC, rowid DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
 def mark_signals_used(ids: list[str]) -> int:
     """Flag signals as aired. Returns the number of rows updated."""
     if not ids:

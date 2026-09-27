@@ -42,8 +42,9 @@ class Checks:
 
 
 def _sample_signal(n: int) -> dict:
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S%f")
     return {
-        "source_url": f"https://example.com/article/{n}",
+        "source_url": f"https://example.com/article/{ts}/{n}",
         "source_name": "hackernews" if n % 2 == 0 else "github_trending",
         "title": f"Synthetic test signal #{n}",
         "summary": f"Blurb for synthetic signal {n}.",

@@ -37,13 +37,16 @@ def run_cycle(cycle_num: int) -> bool:
     if ingest_result['errors']:
         print(f"  Feed errors: {ingest_result['errors']}")
 
-    # 2. FETCH UNUSED SIGNALS
+    # 2. FETCH SIGNALS (Unused first, fallback to recent top signals for 24/7 continuous stream)
     signals = db.get_unused_signals(limit=config.MAX_SIGNALS)
-    print(f"\n[Step 2/4] Pulling un-aired signals from database ({len(signals)} available)...")
+    print(f"\n[Step 2/4] Pulling signals from database ({len(signals)} un-aired available)...")
 
     if len(signals) < config.MIN_SIGNALS:
-        print(f"  ⚠️ Warning: Only {len(signals)} un-aired signals available (minimum is {config.MIN_SIGNALS}).")
-        print("  Skipping production for this cycle; sleeping 60 seconds before re-ingesting...")
+        print(f"  📡 Only {len(signals)} un-aired signals available. Falling back to latest active top stories to ensure 24/7 continuous stream...")
+        signals = db.get_recent_signals(limit=config.MAX_SIGNALS)
+
+    if not signals:
+        print("  ⚠️ No signals found in database! Sleeping 60 seconds before re-ingesting...")
         time.sleep(60)
         return False
 
