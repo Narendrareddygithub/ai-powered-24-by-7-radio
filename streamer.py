@@ -33,10 +33,11 @@ class StreamTerminated(Exception):
 def _build_args(visual: Path, audio: Path, duration: float) -> list[str]:
     """The single FFmpeg push command, as an argv list (never a shell string).
 
-    -loop 1 on the image + -t <duration> bounds the output: a 12-min AAC renders
-    a 12-min video, and FFmpeg exits cleanly when the audio runs out.
+    -re reads input at 1.0x real-time rate pacing so the broadcast streams in
+    real-time like a live radio station rather than uploading at disk speed.
     """
     return [
+        "-re",
         "-loop", "1",
         "-i", str(visual),
         "-i", str(audio),
@@ -46,7 +47,11 @@ def _build_args(visual: Path, audio: Path, duration: float) -> list[str]:
         "-pix_fmt", "yuv420p",
         "-preset", "veryfast",
         "-b:v", config.VIDEO_BITRATE,
+        "-maxrate", config.VIDEO_BITRATE,
+        "-bufsize", "1000k",
         "-g", str(config.VIDEO_GOP),
+        "-keyint_min", str(config.VIDEO_GOP),
+        "-sc_threshold", "0",
         "-vf", f"scale={config.VIDEO_WIDTH}:{config.VIDEO_HEIGHT}",
         "-r", str(config.VIDEO_FPS),
         "-c:a", "aac",
