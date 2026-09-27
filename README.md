@@ -16,10 +16,7 @@
 
 ## 🎥 Project Explanation & Demo Video
 
-https://github.com/Narendrareddygithub/ai-powered-24-by-7-radio/releases/download/v1.0.0/demo_video.mp4
-
-<video src="https://github.com/Narendrareddygithub/ai-powered-24-by-7-radio/releases/download/v1.0.0/demo_video.mp4" controls="controls" style="max-height: 640px; width: 100%;">
-</video>
+<video src="assets/demo_video.mp4" controls width="100%"></video>
 
 > 🎬 *Full 7.8-minute walkthrough video explaining the 24/7 AI Radio architecture, live ingestion, LLM script generation, TTS audio synthesis, and real-time RTMP streaming.*
 
