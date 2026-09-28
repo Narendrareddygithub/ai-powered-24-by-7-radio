@@ -70,9 +70,9 @@ LLM_TEMPERATURE = 0.8
 
 
 # --- TTS --------------------------------------------------------------------
-TTS_VOICE = os.getenv("TTS_VOICE", "en-US-AndrewMultilingualNeural")
+TTS_VOICE = os.getenv("TTS_VOICE", "en-US-GuyNeural")
 TTS_RATE = "+5%"
-TTS_CHUNK_CHARS = 3000  # edge-tts WebSocket drops on chunks > 3,500 chars
+TTS_CHUNK_CHARS = 1200  # edge-tts WebSocket payload limit for reliable synthesis
 
 
 # --- Audio / video encoding -------------------------------------------------

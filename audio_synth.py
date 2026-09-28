@@ -82,10 +82,11 @@ def _split_oversized(paragraph: str, max_chars: int) -> list[str]:
     return pieces
 
 
-async def _synthesize_chunk(text: str, out_path: Path) -> None:
+async def _synthesize_chunk(text: str, out_path: Path, voice: str | None = None) -> None:
     """Render one chunk to MP3 via edge-tts streaming."""
+    v = voice or config.TTS_VOICE
     communicate = edge_tts.Communicate(
-        text, voice=config.TTS_VOICE, rate=config.TTS_RATE
+        text, voice=v, rate=config.TTS_RATE
     )
     wrote_audio = False
     with open(out_path, "wb") as f:
@@ -94,7 +95,7 @@ async def _synthesize_chunk(text: str, out_path: Path) -> None:
                 f.write(chunk["data"])
                 wrote_audio = True
     if not wrote_audio:
-        raise RuntimeError(f"edge-tts returned no audio for chunk ({len(text)} chars)")
+        raise RuntimeError(f"edge-tts returned no audio for chunk ({len(text)} chars, voice={v})")
 
 
 def _run_ffmpeg(args: list[str], label: str) -> None:
@@ -146,6 +147,10 @@ def synthesize_audio(script: str) -> tuple[Path | None, float | None]:
     aac_path = config.QUEUE_DIR / f"session_{stamp}.aac"
     txt_path = config.QUEUE_DIR / f"session_{stamp}.txt"
 
+    fallback_voices = [config.TTS_VOICE, "en-US-GuyNeural", "en-US-ChristopherNeural", "en-US-EricNeural", "en-US-AriaNeural"]
+    # De-duplicate preserving order
+    voices_to_try = list(dict.fromkeys(fallback_voices))
+
     tmp_dir = Path(tempfile.mkdtemp(prefix="radio_tts_"))
     try:
         chunk_paths: list[Path] = []
@@ -153,16 +158,16 @@ def synthesize_audio(script: str) -> tuple[Path | None, float | None]:
             out = tmp_dir / f"chunk_{i:03d}.mp3"
             print(f"  TTS chunk {i}/{len(chunks)} ({len(chunk)} chars)")
             success = False
-            for attempt in range(1, 4):
+            for attempt, v in enumerate(voices_to_try, start=1):
                 try:
-                    asyncio.run(_synthesize_chunk(chunk, out))
+                    asyncio.run(_synthesize_chunk(chunk, out, voice=v))
                     success = True
                     break
-                except Exception as exc:  # noqa: BLE001 — retry transient TTS WebSocket errors
-                    print(f"  [warn] chunk {i} attempt {attempt}/3 failed ({type(exc).__name__})")
-                    if attempt < 3:
+                except Exception as exc:  # noqa: BLE001 — retry transient TTS WebSocket / voice errors
+                    print(f"  [warn] chunk {i} attempt {attempt}/{len(voices_to_try)} (voice={v}) failed ({type(exc).__name__})")
+                    if attempt < len(voices_to_try):
                         import time
-                        time.sleep(3.0)
+                        time.sleep(1.0)
             if not success:
                 raise RuntimeError(f"TTS synthesis failed for chunk {i}/{len(chunks)}")
             chunk_paths.append(out)
