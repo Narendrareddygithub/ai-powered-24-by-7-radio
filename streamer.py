@@ -59,9 +59,14 @@ def _build_args(visual: Path, audio: Path, duration: float, targets: list[tuple[
         "-b:a", config.AUDIO_BITRATE,
         "-ar", config.AUDIO_SAMPLE_RATE,
         "-ac", config.AUDIO_CHANNELS,
+        "-flags", "+global_header",
     ]
-    for name, rtmp_url in targets:
-        args.extend(["-f", "flv", rtmp_url])
+    if len(targets) == 1:
+        args.extend(["-f", "flv", targets[0][1]])
+    else:
+        # Tee muxer duplicates encoded stream cleanly to all active RTMP endpoints
+        tee_target = "|".join([f"[f=flv:onfail=ignore]{url}" for _, url in targets])
+        args.extend(["-f", "tee", tee_target])
     return args
 
 
@@ -102,12 +107,14 @@ def stream_show(visual: Path, audio: Path, duration: float,
             break
 
     def _monitor() -> None:
-        _, stderr = proc.communicate()
-        tail = [ln for ln in (stderr or "").strip().splitlines() if ln][-3:]
+        if proc.stderr:
+            for line in proc.stderr:
+                line_str = line.strip()
+                if line_str:
+                    print(f"  [ffmpeg] {line_str}")
+        proc.wait()
         if proc.returncode != 0:
             print(f"  [stream] ffmpeg exited rc={proc.returncode}")
-            for line in tail:
-                print(f"  [stream] {line}")
         if on_exit:
             try:
                 on_exit(proc.returncode)
