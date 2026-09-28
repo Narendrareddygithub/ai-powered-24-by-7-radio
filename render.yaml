@@ -1,0 +1,21 @@
+services:
+  - type: worker
+    name: ai-powered-247-radio
+    env: docker
+    plan: starter
+    dockerfilePath: Dockerfile
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: YOUTUBE_STREAM_KEY
+        sync: false
+      - key: TWITCH_STREAM_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: openai/gpt-oss-120b
+      - key: TTS_VOICE
+        value: en-US-ChristopherNeural
+      - key: TTS_PITCH
+        value: "-4Hz"
+      - key: TTS_RATE
+        value: "-5%"

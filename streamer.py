@@ -46,6 +46,7 @@ def _build_args(visual: Path, audio: Path, duration: float, targets: list[tuple[
         "-c:v", "libx264",
         "-pix_fmt", "yuv420p",
         "-preset", "veryfast",
+        "-tune", "zerolatency",
         "-b:v", config.VIDEO_BITRATE,
         "-maxrate", config.VIDEO_BITRATE,
         "-bufsize", "1000k",

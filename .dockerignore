@@ -1,0 +1,13 @@
+.git
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.db
+queue/*
+temp/*
+sample_*.mp3
+auto.crt
+auto.key
+.env
+tools/

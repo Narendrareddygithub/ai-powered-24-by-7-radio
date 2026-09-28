@@ -86,7 +86,7 @@ async def _synthesize_chunk(text: str, out_path: Path, voice: str | None = None)
     """Render one chunk to MP3 via edge-tts streaming."""
     v = voice or config.TTS_VOICE
     communicate = edge_tts.Communicate(
-        text, voice=v, rate=config.TTS_RATE
+        text, voice=v, rate=config.TTS_RATE, pitch=config.TTS_PITCH
     )
     wrote_audio = False
     with open(out_path, "wb") as f:
@@ -147,7 +147,7 @@ def synthesize_audio(script: str) -> tuple[Path | None, float | None]:
     aac_path = config.QUEUE_DIR / f"session_{stamp}.aac"
     txt_path = config.QUEUE_DIR / f"session_{stamp}.txt"
 
-    fallback_voices = [config.TTS_VOICE, "en-US-GuyNeural", "en-US-ChristopherNeural", "en-US-EricNeural", "en-US-AriaNeural"]
+    fallback_voices = [config.TTS_VOICE, "en-US-BrianNeural", "en-US-GuyNeural", "en-US-EricNeural", "en-US-AriaNeural"]
     # De-duplicate preserving order
     voices_to_try = list(dict.fromkeys(fallback_voices))
 
