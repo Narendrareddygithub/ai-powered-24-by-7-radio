@@ -25,7 +25,7 @@ https://github.com/user-attachments/assets/825ed2d6-c8db-46c4-a9e3-b432401e8e05
 > 🎬 *Full 7.8-minute walkthrough video explaining the 24/7 AI Radio architecture, live ingestion, LLM script generation, TTS audio synthesis, and real-time RTMP streaming.*
 ## Live Streaming in YouTube 
 
-Visit :- https://www.youtube.com/watch?v=dgMCfWt49eo
+Click Here :- **[AI-Powered 24-by-7 Radio](https://www.youtube.com/watch?v=dgMCfWt49eo)** <br> <br>
 ---
 
 ## ⚡ Quickstart — Run the Station
