@@ -6,11 +6,11 @@
   <img alt="Python"      src="https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white">
   <img alt="Groq"        src="https://img.shields.io/badge/LLM-Groq-F55036?style=for-the-badge">
   <img alt="FFmpeg"      src="https://img.shields.io/badge/Streaming-FFmpeg-007808?style=for-the-badge&logo=ffmpeg&logoColor=white">
-  <img alt="Twitch"      src="https://img.shields.io/badge/Live-Twitch.tv-9146FF?style=for-the-badge&logo=twitch&logoColor=white">
-  <img alt="Hackathon"   src="https://img.shields.io/badge/Built%20at-Hackathon-FFB000?style=for-the-badge">
+  <img alt="Twitch"      src="https://img.shields.io/badge/Live-youtube.com-9146FF?style=for-the-badge&logo=twitch&logoColor=white">
+  <img alt="Built in Public"   src="https://img.shields.io/badge/Built%20ain-Public-FFB000?style=for-the-badge">
 </p>
 
-> 🔴 **LIVE DEMO STREAM**: Watch the station broadcasting live on Twitch at **[twitch.tv/narendra454545](https://www.twitch.tv/narendra454545)**!
+> 🔴 **LIVE DEMO STREAM**: Watch the station broadcasting live on Twitch at **[AI-Powered 24-by-7 Radio](https://www.youtube.com/@AI-powered24-by-7radio)**!
 
 ---
 
@@ -23,7 +23,8 @@ https://github.com/user-attachments/assets/825ed2d6-c8db-46c4-a9e3-b432401e8e05
 
 
 > 🎬 *Full 7.8-minute walkthrough video explaining the 24/7 AI Radio architecture, live ingestion, LLM script generation, TTS audio synthesis, and real-time RTMP streaming.*
-
+## 🎥 Project Explanation & Demo Video
+https://www.youtube.com/@AI-powered24-by-7radio
 ---
 
 ## ⚡ Quickstart — Run the Station
