@@ -6,7 +6,7 @@
   <img alt="Python"      src="https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white">
   <img alt="Groq"        src="https://img.shields.io/badge/LLM-Groq-F55036?style=for-the-badge">
   <img alt="FFmpeg"      src="https://img.shields.io/badge/Streaming-FFmpeg-007808?style=for-the-badge&logo=ffmpeg&logoColor=white">
-  <img alt="Twitch"      src="https://img.shields.io/badge/Live-youtube.com-9146FF?style=for-the-badge&logo=twitch&logoColor=white">
+  <img alt="Twitch"      src="https://img.shields.io/badge/Live-youtube.com-9146FF?style=for-the-badge&logo=youtube&logoColor=red">
   <img alt="Built in Public"   src="https://img.shields.io/badge/Built%20in-Public-FFB000?style=for-the-badge">
 </p>
 
