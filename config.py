@@ -88,8 +88,12 @@ VIDEO_BITRATE = "500k"
 VIDEO_GOP = 60
 
 
+# --- Supabase ---------------------------------------------------------------
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://ntuyvfnuilipninvkqgc.supabase.co")
+SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+
+
 # --- Paths ------------------------------------------------------------------
-DB_PATH = BASE_DIR / "radio.db"
 QUEUE_DIR = BASE_DIR / "queue"
 ASSETS_DIR = BASE_DIR / "assets"
 STATIC_VISUAL = ASSETS_DIR / "static_visual.jpg"

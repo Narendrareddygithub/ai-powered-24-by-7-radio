@@ -7,6 +7,8 @@ Run:
 import os
 import sys
 import threading
+import time
+import urllib.request
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 # Reconfigure stdout and stderr for UTF-8 encoding on Windows console
@@ -36,8 +38,26 @@ def _start_dummy_health_server():
         print(f"  [health] Note: Could not bind health port {port}: {exc}")
 
 
+def _start_keepalive_pinger():
+    """Self-ping the health endpoint every 5 minutes to prevent Render free-tier sleep."""
+    render_url = os.getenv("RENDER_EXTERNAL_URL", "")
+    port = int(os.getenv("PORT", "10000"))
+
+    def _ping_loop():
+        while True:
+            time.sleep(300)  # Every 5 minutes
+            try:
+                target = render_url or f"http://localhost:{port}"
+                urllib.request.urlopen(f"{target}/", timeout=5)
+            except Exception:
+                pass  # Best-effort; don't crash on network hiccup
+
+    threading.Thread(target=_ping_loop, daemon=True).start()
+
+
 from radio import run_radio_loop
 
 if __name__ == "__main__":
     _start_dummy_health_server()
+    _start_keepalive_pinger()
     sys.exit(run_radio_loop())

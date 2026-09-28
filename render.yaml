@@ -11,6 +11,10 @@ services:
         sync: false
       - key: TWITCH_STREAM_KEY
         sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
       - key: GROQ_MODEL
         value: openai/gpt-oss-120b
       - key: TTS_VOICE

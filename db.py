@@ -1,38 +1,60 @@
-"""db.py — SQLite persistence: signals, dedup, and the broadcast audit log.
+"""db.py — Supabase (PostgreSQL) persistence: signals, dedup, and the broadcast audit log.
 
-One short-lived connection per call. The MVP is a single-process loop, so
-connection pooling would be premature; `check_same_thread=False` is set so the
-optional Phase 6b prefetch thread can read safely if we add it.
+Uses Supabase PostgREST HTTP API for all database operations, eliminating local
+SQLite storage. This makes the app fully stateless and cloud-ready (Render, etc.).
 """
 
 import hashlib
 import json
-import sqlite3
+import os
+import urllib.error
+import urllib.parse
+import urllib.request
 import uuid
 from typing import Any
 
 import config
 
-SCHEMA_PATH = config.BASE_DIR / "schema.sql"
+# Supabase connection details — loaded from environment or .env
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://ntuyvfnuilipninvkqgc.supabase.co")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50dXl2Zm51aWxpcG5pbnZrcWdjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MDU5MTkxOCwiZXhwIjoyMTA2MTY3OTE4fQ.Ka2bFyjttqUE0BdGyhFULuDyTaZOZAYj2FpqkrKaBxE")
 
 
-def _connect() -> sqlite3.Connection:
-    config.DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(config.DB_PATH, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    return conn
+def _headers(*, prefer: str = "") -> dict[str, str]:
+    """Standard Supabase PostgREST headers."""
+    h = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+    }
+    if prefer:
+        h["Prefer"] = prefer
+    return h
+
+
+def _request(method: str, table: str, params: str = "", body: Any = None,
+             prefer: str = "") -> list[dict] | None:
+    """Execute a PostgREST request and return parsed JSON."""
+    url = f"{SUPABASE_URL}/rest/v1/{table}"
+    if params:
+        url += f"?{params}"
+    data = json.dumps(body).encode("utf-8") if body else None
+    req = urllib.request.Request(url, data=data, headers=_headers(prefer=prefer), method=method)
+    try:
+        with urllib.request.urlopen(req) as resp:
+            content = resp.read().decode()
+            if content:
+                return json.loads(content)
+            return None
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode() if e.fp else ""
+        print(f"  [db] PostgREST {method} {table} failed ({e.code}): {error_body[:300]}")
+        raise
 
 
 def init_db() -> None:
-    """Create the schema if absent. Idempotent — safe to call on every start."""
-    with open(SCHEMA_PATH, encoding="utf-8") as f:
-        ddl = f.read()
-    conn = _connect()
-    try:
-        conn.executescript(ddl)
-        conn.commit()
-    finally:
-        conn.close()
+    """No-op for Supabase — tables are created via Management API / migrations."""
+    pass
 
 
 def url_hash(source_url: str) -> str:
@@ -41,116 +63,83 @@ def url_hash(source_url: str) -> str:
 
 
 def signal_exists(source_url: str) -> bool:
-    conn = _connect()
-    try:
-        row = conn.execute(
-            "SELECT 1 FROM raw_signals WHERE url_hash = ? LIMIT 1",
-            (url_hash(source_url),),
-        ).fetchone()
-        return row is not None
-    finally:
-        conn.close()
+    h = url_hash(source_url)
+    params = urllib.parse.urlencode({"url_hash": f"eq.{h}", "select": "id", "limit": "1"})
+    result = _request("GET", "raw_signals", params=params)
+    return bool(result)
 
 
 def insert_signal(signal: dict[str, Any]) -> bool:
-    """Insert one signal. Returns True if new, False if it was a duplicate.
-
-    Relies on the UNIQUE constraint on url_hash rather than a check-then-insert,
-    so concurrent callers can't race a duplicate in.
-    """
-    conn = _connect()
+    """Insert one signal. Returns True if new, False if it was a duplicate."""
+    row = {
+        "id": uuid.uuid4().hex,
+        "url_hash": url_hash(signal["source_url"]),
+        "source_url": signal["source_url"],
+        "source_name": signal["source_name"],
+        "title": signal["title"],
+        "summary_text": signal.get("summary"),
+    }
     try:
-        conn.execute(
-            """
-            INSERT INTO raw_signals
-                (id, url_hash, source_url, source_name, title, summary_text)
-            VALUES (?, ?, ?, ?, ?, ?)
-            """,
-            (
-                uuid.uuid4().hex,
-                url_hash(signal["source_url"]),
-                signal["source_url"],
-                signal["source_name"],
-                signal["title"],
-                signal.get("summary"),
-            ),
-        )
-        conn.commit()
+        _request("POST", "raw_signals", body=row, prefer="return=minimal")
         return True
-    except sqlite3.IntegrityError:
-        return False
-    finally:
-        conn.close()
+    except urllib.error.HTTPError as e:
+        if e.code == 409:  # Conflict — duplicate url_hash
+            return False
+        raise
 
 
 def get_unused_signals(limit: int = config.MAX_SIGNALS) -> list[dict[str, Any]]:
     """Newest-first unused signals, capped at `limit`."""
-    conn = _connect()
-    try:
-        rows = conn.execute(
-            """
-            SELECT id, source_url, source_name, title, summary_text
-            FROM raw_signals
-            WHERE is_used = 0
-            ORDER BY ingested_at DESC, rowid DESC
-            LIMIT ?
-            """,
-            (limit,),
-        ).fetchall()
-        return [dict(r) for r in rows]
-    finally:
-        conn.close()
+    params = urllib.parse.urlencode({
+        "is_used": "eq.0",
+        "select": "id,source_url,source_name,title,summary_text",
+        "order": "ingested_at.desc",
+        "limit": str(limit),
+    })
+    result = _request("GET", "raw_signals", params=params)
+    return result or []
 
 
 def get_recent_signals(limit: int = config.MAX_SIGNALS) -> list[dict[str, Any]]:
     """Newest-first active signals (regardless of is_used) to guarantee 24/7 continuous stream."""
-    conn = _connect()
-    try:
-        rows = conn.execute(
-            """
-            SELECT id, source_url, source_name, title, summary_text
-            FROM raw_signals
-            ORDER BY ingested_at DESC, rowid DESC
-            LIMIT ?
-            """,
-            (limit,),
-        ).fetchall()
-        return [dict(r) for r in rows]
-    finally:
-        conn.close()
+    params = urllib.parse.urlencode({
+        "select": "id,source_url,source_name,title,summary_text",
+        "order": "ingested_at.desc",
+        "limit": str(limit),
+    })
+    result = _request("GET", "raw_signals", params=params)
+    return result or []
 
 
 def mark_signals_used(ids: list[str]) -> int:
     """Flag signals as aired. Returns the number of rows updated."""
     if not ids:
         return 0
-    conn = _connect()
-    try:
-        placeholders = ",".join("?" * len(ids))
-        cur = conn.execute(
-            f"UPDATE raw_signals SET is_used = 1 WHERE id IN ({placeholders})",
-            ids,
-        )
-        conn.commit()
-        return cur.rowcount
-    finally:
-        conn.close()
+    # PostgREST IN filter: id=in.(val1,val2,...)
+    id_list = ",".join(ids)
+    params = f"id=in.({id_list})"
+    _request("PATCH", "raw_signals", params=params, body={"is_used": 1}, prefer="return=minimal")
+    return len(ids)
 
 
 def count_signals(source_name: str | None = None) -> int:
-    """Total signals, optionally filtered to one source. Used by smoke tests."""
-    conn = _connect()
+    """Total signals, optionally filtered to one source."""
+    params_dict: dict[str, str] = {"select": "id"}
+    if source_name:
+        params_dict["source_name"] = f"eq.{source_name}"
+    params = urllib.parse.urlencode(params_dict)
+    headers = _headers(prefer="count=exact")
+    url = f"{SUPABASE_URL}/rest/v1/raw_signals?{params}"
+    req = urllib.request.Request(url, headers=headers, method="HEAD")
     try:
-        if source_name:
-            row = conn.execute(
-                "SELECT COUNT(*) AS n FROM raw_signals WHERE source_name = ?",
-                (source_name,),
-            ).fetchone()
-        else:
-            row = conn.execute("SELECT COUNT(*) AS n FROM raw_signals").fetchone()
-        return row["n"]
-    finally:
-        conn.close()
+        with urllib.request.urlopen(req) as resp:
+            content_range = resp.headers.get("Content-Range", "")
+            # Format: "0-N/total" or "*/total"
+            if "/" in content_range:
+                return int(content_range.split("/")[-1])
+            return 0
+    except Exception:
+        return 0
 
 
 def log_broadcast(
@@ -162,51 +151,27 @@ def log_broadcast(
     aired_at: str | None = None,
     tts_engine: str = "edge-tts",
 ) -> None:
-    """Write one audit row per aired show (specs §6)."""
-    conn = _connect()
-    try:
-        conn.execute(
-            """
-            INSERT INTO broadcast_audit_log
-                (session_id, actual_aired_at, full_script_transcript,
-                 cited_source_urls, llm_model, tts_engine, audio_duration_seconds)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                session_id,
-                aired_at,
-                transcript,
-                json.dumps(cited_urls),
-                llm_model,
-                tts_engine,
-                audio_duration,
-            ),
-        )
-        conn.commit()
-    finally:
-        conn.close()
+    """Write one audit row per aired show."""
+    row = {
+        "session_id": session_id,
+        "actual_aired_at": aired_at,
+        "full_script_transcript": transcript,
+        "cited_source_urls": json.dumps(cited_urls),
+        "llm_model": llm_model,
+        "tts_engine": tts_engine,
+        "audio_duration_seconds": audio_duration,
+    }
+    _request("POST", "broadcast_audit_log", body=row, prefer="return=minimal")
 
 
 def get_audit(session_id: str) -> dict[str, Any] | None:
-    conn = _connect()
-    try:
-        row = conn.execute(
-            "SELECT * FROM broadcast_audit_log WHERE session_id = ?",
-            (session_id,),
-        ).fetchone()
-        return dict(row) if row else None
-    finally:
-        conn.close()
+    params = urllib.parse.urlencode({"session_id": f"eq.{session_id}", "limit": "1"})
+    result = _request("GET", "broadcast_audit_log", params=params)
+    return result[0] if result else None
 
 
 def set_aired_at(session_id: str, aired_at: str) -> None:
     """Stamp actual_aired_at once the stream has started."""
-    conn = _connect()
-    try:
-        conn.execute(
-            "UPDATE broadcast_audit_log SET actual_aired_at = ? WHERE session_id = ?",
-            (aired_at, session_id),
-        )
-        conn.commit()
-    finally:
-        conn.close()
+    params = urllib.parse.urlencode({"session_id": f"eq.{session_id}"})
+    _request("PATCH", "broadcast_audit_log", params=params,
+             body={"actual_aired_at": aired_at}, prefer="return=minimal")
