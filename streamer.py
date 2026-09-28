@@ -36,8 +36,10 @@ def _build_args(visual: Path, audio: Path, duration: float, targets: list[tuple[
     -re reads input at 1.0x real-time rate pacing so the broadcast streams in
     real-time like a live radio station rather than uploading at disk speed.
     """
+    loop_flag = ["-ignore_loop", "0"] if str(visual).endswith(".gif") else ["-loop", "1"]
     args = [
-        "-loop", "1",
+        *loop_flag,
+        "-re",
         "-i", str(visual),
         "-re",
         "-i", str(audio),
@@ -61,7 +63,7 @@ def _build_args(visual: Path, audio: Path, duration: float, targets: list[tuple[
         "-ar", config.AUDIO_SAMPLE_RATE,
         "-ac", config.AUDIO_CHANNELS,
         "-af", "aresample=async=1",
-        "-vsync", "cfr",
+        "-fps_mode", "cfr",
         "-flags", "+global_header",
     ]
     if len(targets) == 1:

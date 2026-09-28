@@ -96,7 +96,8 @@ SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
 # --- Paths ------------------------------------------------------------------
 QUEUE_DIR = BASE_DIR / "queue"
 ASSETS_DIR = BASE_DIR / "assets"
-STATIC_VISUAL = ASSETS_DIR / "static_visual.jpg"
+ANIMATED_VISUAL = ASSETS_DIR / "animated_visual.gif"
+STATIC_VISUAL = ANIMATED_VISUAL if ANIMATED_VISUAL.exists() else ASSETS_DIR / "static_visual.jpg"
 TOOLS_DIR = BASE_DIR / "tools"
 FFMPEG_DIR = TOOLS_DIR / "ffmpeg" / "bin"
 MEDIAMTX_DIR = TOOLS_DIR / "mediamtx"
