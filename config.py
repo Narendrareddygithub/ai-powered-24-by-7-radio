@@ -83,9 +83,9 @@ AUDIO_CHANNELS = "2"
 
 VIDEO_WIDTH = 1280
 VIDEO_HEIGHT = 720
-VIDEO_FPS = 30
-VIDEO_BITRATE = "2500k"  # YouTube Live recommended bitrate for 720p 30fps smooth streaming
-VIDEO_GOP = 60
+VIDEO_FPS = 5          # 5 FPS reduces CPU load by 80%+ for static image radio stream
+VIDEO_BITRATE = "2500k"  # YouTube Live recommended bitrate for 720p smooth streaming
+VIDEO_GOP = 10         # 2-second keyframe interval at 5 FPS (5 * 2)
 
 
 # --- Supabase ---------------------------------------------------------------

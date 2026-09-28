@@ -37,15 +37,16 @@ def _build_args(visual: Path, audio: Path, duration: float, targets: list[tuple[
     real-time like a live radio station rather than uploading at disk speed.
     """
     args = [
-        "-re",
         "-loop", "1",
         "-i", str(visual),
+        "-re",
         "-i", str(audio),
         "-t", f"{duration:.3f}",
         "-map", "0:v", "-map", "1:a",
         "-c:v", "libx264",
         "-pix_fmt", "yuv420p",
-        "-preset", "veryfast",
+        "-preset", "ultrafast",
+        "-tune", "stillimage",
         "-b:v", config.VIDEO_BITRATE,
         "-maxrate", config.VIDEO_BITRATE,
         "-bufsize", "5000k",
