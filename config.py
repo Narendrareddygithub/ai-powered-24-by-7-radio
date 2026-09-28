@@ -83,9 +83,9 @@ AUDIO_CHANNELS = "2"
 
 VIDEO_WIDTH = 1280
 VIDEO_HEIGHT = 720
-VIDEO_FPS = 5          # 5 FPS reduces CPU load by 80%+ for static image radio stream
+VIDEO_FPS = 15         # 15 FPS provides smooth 15-frame video for YouTube Live while keeping CPU low
 VIDEO_BITRATE = "2500k"  # YouTube Live recommended bitrate for 720p smooth streaming
-VIDEO_GOP = 10         # 2-second keyframe interval at 5 FPS (5 * 2)
+VIDEO_GOP = 30         # 2-second keyframe interval at 15 FPS (15 * 2)
 
 
 # --- Supabase ---------------------------------------------------------------

@@ -59,6 +59,8 @@ def _build_args(visual: Path, audio: Path, duration: float, targets: list[tuple[
         "-b:a", config.AUDIO_BITRATE,
         "-ar", config.AUDIO_SAMPLE_RATE,
         "-ac", config.AUDIO_CHANNELS,
+        "-af", "aresample=async=1",
+        "-vsync", "cfr",
         "-flags", "+global_header",
     ]
     if len(targets) == 1:
