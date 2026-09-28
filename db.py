@@ -47,8 +47,9 @@ def _request(method: str, table: str, params: str = "", body: Any = None,
                 return json.loads(content)
             return None
     except urllib.error.HTTPError as e:
-        error_body = e.read().decode() if e.fp else ""
-        print(f"  [db] PostgREST {method} {table} failed ({e.code}): {error_body[:300]}")
+        if e.code != 409:  # 409 Conflict is normal dedup for duplicate signals
+            error_body = e.read().decode() if e.fp else ""
+            print(f"  [db] PostgREST {method} {table} failed ({e.code}): {error_body[:300]}")
         raise
 
 

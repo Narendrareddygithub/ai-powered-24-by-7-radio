@@ -110,7 +110,7 @@ def stream_show(visual: Path, audio: Path, duration: float,
         if proc.stderr:
             for line in proc.stderr:
                 line_str = line.strip()
-                if line_str:
+                if line_str and "More than 1000 frames duplicated" not in line_str:
                     print(f"  [ffmpeg] {line_str}")
         proc.wait()
         if proc.returncode != 0:
