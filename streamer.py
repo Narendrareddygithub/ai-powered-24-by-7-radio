@@ -30,13 +30,13 @@ class StreamTerminated(Exception):
     """The push ended early — server closed the connection or FFmpeg died."""
 
 
-def _build_args(visual: Path, audio: Path, duration: float) -> list[str]:
+def _build_args(visual: Path, audio: Path, duration: float, targets: list[tuple[str, str]]) -> list[str]:
     """The single FFmpeg push command, as an argv list (never a shell string).
 
     -re reads input at 1.0x real-time rate pacing so the broadcast streams in
     real-time like a live radio station rather than uploading at disk speed.
     """
-    return [
+    args = [
         "-re",
         "-loop", "1",
         "-i", str(visual),
@@ -58,9 +58,10 @@ def _build_args(visual: Path, audio: Path, duration: float) -> list[str]:
         "-b:a", config.AUDIO_BITRATE,
         "-ar", config.AUDIO_SAMPLE_RATE,
         "-ac", config.AUDIO_CHANNELS,
-        "-f", "flv",
-        f"{config.STREAM_URL}/{config.STREAM_KEY}",
     ]
+    for name, rtmp_url in targets:
+        args.extend(["-f", "flv", rtmp_url])
+    return args
 
 
 def stream_show(visual: Path, audio: Path, duration: float,
@@ -68,16 +69,17 @@ def stream_show(visual: Path, audio: Path, duration: float,
     """Start the FFmpeg push in the background and return the Popen handle.
 
     Includes automatic retries for transient RTMP socket reset / I/O errors on startup.
+    Supports single or dual simultaneous broadcast to YouTube Live + Twitch.
     """
-    key = config.STREAM_KEY
-    if not key:
+    targets = config.get_stream_targets()
+    if not targets:
         raise RuntimeError(
-            "STREAM_KEY is empty — set it in .env (any value works for the "
-            "local MediaMTX target; 'radio' is conventional)."
+            "No active stream targets found — set YOUTUBE_STREAM_KEY, TWITCH_STREAM_KEY, or STREAM_KEY in .env."
         )
 
-    args = _build_args(visual, audio, duration)
-    print(f"  streaming {audio.name} ({duration / 60:.1f} min) -> {config.STREAM_URL}")
+    target_names = " + ".join([name for name, _ in targets])
+    args = _build_args(visual, audio, duration, targets)
+    print(f"  streaming {audio.name} ({duration / 60:.1f} min) -> {target_names}")
 
     proc = None
     for attempt in range(1, 4):

@@ -22,20 +22,34 @@ load_dotenv(BASE_DIR / ".env", override=False)
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
 
 
-# --- Broadcast target -------------------------------------------------------
-# Any RTMP/RTMPS endpoint works — YouTube, Twitch, Kick, or a local MediaMTX
-# server (tools/mediamtx). Switching platforms is a .env change, not a code
-# change, because every target is the same FFmpeg push.
-#
-#   YouTube : STREAM_URL=rtmps://a.rtmp.youtube.com:443/live2
-#             STREAM_KEY=<YouTube Studio stream key>   (24h activation wait)
-#   Twitch  : STREAM_URL=rtmp://live.twitch.tv/app
-#             STREAM_KEY=<twitch.tv/settings/stream key>  (2FA required first)
-#   Local   : STREAM_URL=rtmp://localhost:1935
-#             STREAM_KEY=radio   (MediaMTX has no auth; the key names the path)
-#             then watch http://localhost:8888/radio
-STREAM_URL = os.getenv("STREAM_URL", "rtmp://localhost:1935").strip()
+# --- Broadcast targets (Single target or Dual YouTube + Twitch Simulcast) ---
+STREAM_URL = os.getenv("STREAM_URL", "").strip()
 STREAM_KEY = os.getenv("STREAM_KEY", "").strip()
+
+YOUTUBE_STREAM_KEY = os.getenv("YOUTUBE_STREAM_KEY", "").strip()
+YOUTUBE_STREAM_URL = os.getenv("YOUTUBE_STREAM_URL", "rtmps://a.rtmp.youtube.com:443/live2").strip()
+
+TWITCH_STREAM_KEY = os.getenv("TWITCH_STREAM_KEY", "").strip()
+TWITCH_STREAM_URL = os.getenv("TWITCH_STREAM_URL", "rtmp://live.twitch.tv/app").strip()
+
+
+def get_stream_targets() -> list[tuple[str, str]]:
+    """Return active (platform_name, full_rtmp_url) targets.
+
+    Supports dual simultaneous broadcast to YouTube Live + Twitch.
+    """
+    targets = []
+    if YOUTUBE_STREAM_KEY:
+        targets.append(("YouTube Live", f"{YOUTUBE_STREAM_URL.rstrip('/')}/{YOUTUBE_STREAM_KEY}"))
+    if TWITCH_STREAM_KEY:
+        targets.append(("Twitch", f"{TWITCH_STREAM_URL.rstrip('/')}/{TWITCH_STREAM_KEY}"))
+
+    if not targets and STREAM_KEY:
+        url = STREAM_URL or "rtmp://localhost:1935"
+        name = "Twitch" if "twitch" in url.lower() else ("YouTube" if "youtube" in url.lower() else "RTMP")
+        targets.append((name, f"{url.rstrip('/')}/{STREAM_KEY}"))
+
+    return targets
 
 
 # --- LLM --------------------------------------------------------------------
@@ -110,23 +124,15 @@ FFPROBE = _resolve_binary("ffprobe")
 
 
 def require_credentials(*names: str) -> None:
-    """Raise with an actionable message if a required secret is missing.
-
-    Called by entrypoints that actually need the secrets, so that credential-
-    free phases (db, ingest) stay runnable without a populated .env.
-    """
-    values = {
-        "GROQ_API_KEY": GROQ_API_KEY,
-        "STREAM_KEY": STREAM_KEY,
-    }
-    placeholders = {"your_groq_api_key", "your_youtube_stream_key", "your_stream_key"}
-    missing = []
-    for name in names:
-        value = values[name]
-        if not value or value in placeholders:
-            missing.append(name)
-    if missing:
+    """Raise with an actionable message if a required secret is missing."""
+    if not GROQ_API_KEY or GROQ_API_KEY == "your_groq_api_key":
         raise RuntimeError(
-            f"Missing credentials in {BASE_DIR / '.env'}: {', '.join(missing)}. "
-            f"Copy .env.example to .env and fill in the values."
+            f"Missing GROQ_API_KEY in {BASE_DIR / '.env'}. "
+            f"Get a free key at https://console.groq.com and set GROQ_API_KEY in .env"
+        )
+    targets = get_stream_targets()
+    if not targets:
+        raise RuntimeError(
+            f"No active streaming targets found in {BASE_DIR / '.env'}! "
+            f"Set YOUTUBE_STREAM_KEY, TWITCH_STREAM_KEY, or STREAM_KEY in .env"
         )
