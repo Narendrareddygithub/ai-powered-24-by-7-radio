@@ -152,11 +152,19 @@ def synthesize_audio(script: str) -> tuple[Path | None, float | None]:
         for i, chunk in enumerate(chunks, start=1):
             out = tmp_dir / f"chunk_{i:03d}.mp3"
             print(f"  TTS chunk {i}/{len(chunks)} ({len(chunk)} chars)")
-            try:
-                asyncio.run(_synthesize_chunk(chunk, out))
-            except Exception as exc:  # noqa: BLE001 — retry once, then give up
-                print(f"  [warn] chunk {i} failed ({type(exc).__name__}), retrying")
-                asyncio.run(_synthesize_chunk(chunk, out))
+            success = False
+            for attempt in range(1, 4):
+                try:
+                    asyncio.run(_synthesize_chunk(chunk, out))
+                    success = True
+                    break
+                except Exception as exc:  # noqa: BLE001 — retry transient TTS WebSocket errors
+                    print(f"  [warn] chunk {i} attempt {attempt}/3 failed ({type(exc).__name__})")
+                    if attempt < 3:
+                        import time
+                        time.sleep(3.0)
+            if not success:
+                raise RuntimeError(f"TTS synthesis failed for chunk {i}/{len(chunks)}")
             chunk_paths.append(out)
 
         combined = tmp_dir / "combined.mp3"

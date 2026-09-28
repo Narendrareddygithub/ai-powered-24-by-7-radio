@@ -27,7 +27,7 @@ STREAM_URL = os.getenv("STREAM_URL", "").strip()
 STREAM_KEY = os.getenv("STREAM_KEY", "").strip()
 
 YOUTUBE_STREAM_KEY = os.getenv("YOUTUBE_STREAM_KEY", "").strip()
-YOUTUBE_STREAM_URL = os.getenv("YOUTUBE_STREAM_URL", "rtmps://a.rtmp.youtube.com:443/live2").strip()
+YOUTUBE_STREAM_URL = os.getenv("YOUTUBE_STREAM_URL", "rtmp://a.rtmp.youtube.com/live2").strip()
 
 TWITCH_STREAM_KEY = os.getenv("TWITCH_STREAM_KEY", "").strip()
 TWITCH_STREAM_URL = os.getenv("TWITCH_STREAM_URL", "rtmp://live.twitch.tv/app").strip()
@@ -72,7 +72,7 @@ LLM_TEMPERATURE = 0.8
 # --- TTS --------------------------------------------------------------------
 TTS_VOICE = os.getenv("TTS_VOICE", "en-US-AndrewMultilingualNeural")
 TTS_RATE = "+5%"
-TTS_CHUNK_CHARS = 8000  # edge-tts WebSocket drops on very long text
+TTS_CHUNK_CHARS = 3000  # edge-tts WebSocket drops on chunks > 3,500 chars
 
 
 # --- Audio / video encoding -------------------------------------------------
