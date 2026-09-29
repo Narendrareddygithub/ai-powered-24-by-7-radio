@@ -59,10 +59,10 @@ def _produce_one_show(show_index: int) -> dict | None:
         print("  [Producer] ❌ Audio synthesis failed.")
         return None
 
-    # 5. Pre-encode broadcast MP4 (visual + AAC audio -> broadcast-ready MP4)
-    print(f"  [Producer] 🎬 Pre-encoding broadcast MP4...")
-    mp4_path, duration = audio_synth.pre_encode_show(aac_path)
-    if not mp4_path or not mp4_path.exists():
+    # 5. Pre-encode broadcast FLV (visual + AAC audio -> broadcast-ready FLV)
+    print(f"  [Producer] 🎬 Pre-encoding broadcast FLV...")
+    flv_path, duration = audio_synth.pre_encode_show(aac_path)
+    if not flv_path or not flv_path.exists():
         print("  [Producer] ❌ Pre-encoding show failed.")
         return None
 
@@ -81,17 +81,18 @@ def _produce_one_show(show_index: int) -> dict | None:
     db.mark_signals_used(signal_ids)
 
     mins = duration / 60.0
-    print(f"  [Producer] ✅ Show #{show_index} pre-encoded & ready: {mp4_path.name} ({mins:.1f} min, {words} words).")
+    print(f"  [Producer] ✅ Show #{show_index} pre-encoded & ready: {flv_path.name} ({mins:.1f} min, {words} words).")
 
     return {
         "session_id": session_id,
-        "mp4_path": mp4_path,
+        "flv_path": flv_path,
         "aac_path": aac_path,
         "duration": duration,
         "script": script,
         "cited_urls": cited_urls,
         "show_index": show_index,
     }
+
 
 
 
@@ -147,7 +148,7 @@ def run_radio_loop():
             show = SHOW_QUEUE.get()  # Blocks if queue empty until show ready
 
             session_id = show["session_id"]
-            mp4_path = show.get("mp4_path", show["aac_path"])
+            flv_path = show.get("flv_path", show.get("mp4_path", show["aac_path"]))
             duration = show["duration"]
             mins = duration / 60.0
 
@@ -155,10 +156,11 @@ def run_radio_loop():
             db.set_aired_at(session_id, air_time)
 
             print(f"\n🔴 BROADCASTING LIVE to {config.STREAM_URL} ...")
-            print(f"  Playing show #{show['show_index']} ({mp4_path.name}, {mins:.1f} min)...")
+            print(f"  Playing show #{show['show_index']} ({flv_path.name}, {mins:.1f} min)...")
 
-            proc = streamer.stream_show(mp4_path, duration)
+            proc = streamer.stream_show(flv_path, duration)
             completed = streamer.wait_for_stream(proc, duration)
+
 
             if completed:
                 print(f"✅ CYCLE #{cycle_num} FINISHED! Immediately starting next show from queue...")

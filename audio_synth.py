@@ -199,19 +199,19 @@ def synthesize_audio(script: str) -> tuple[Path | None, float | None]:
 
 
 def pre_encode_show(aac_path: Path, visual: Path | None = None) -> tuple[Path, float]:
-    """Mux visual + AAC audio into a broadcast-ready MP4.
+    """Mux visual + AAC audio into a broadcast-ready FLV container file.
 
-    The MP4 is encoded with YouTube-compliant settings (H.264 CBR 2500k,
-    AAC 128k, 2-second keyframes) so the streamer can push it with -c copy
-    at near-zero CPU cost.
+    The FLV is encoded with YouTube-compliant settings (H.264 CBR 2500k,
+    AAC 128k, 2-second keyframes) so the streamer can push it to RTMP with
+    -c copy at near-zero CPU cost.
 
-    Returns (mp4_path, duration_seconds).
+    Returns (flv_path, duration_seconds).
     """
     if visual is None:
         visual = config.STATIC_VISUAL
 
     duration = probe_duration(aac_path)
-    mp4_path = aac_path.with_suffix(".mp4")
+    flv_path = aac_path.with_suffix(".flv")
 
     loop_flag = ["-ignore_loop", "0"] if str(visual).endswith(".gif") else ["-loop", "1"]
 
@@ -236,12 +236,12 @@ def pre_encode_show(aac_path: Path, visual: Path | None = None) -> tuple[Path, f
             "-vf", f"scale={config.VIDEO_WIDTH}:{config.VIDEO_HEIGHT}",
             "-r", str(config.VIDEO_FPS),
             "-c:a", "copy",
-            "-movflags", "+faststart",
-            "-f", "mp4",
-            str(mp4_path),
+            "-f", "flv",
+            str(flv_path),
         ],
         "pre-encode show",
     )
 
-    return mp4_path, duration
+    return flv_path, duration
+
 

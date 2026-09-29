@@ -31,23 +31,28 @@ class StreamTerminated(Exception):
 
 
 def _build_copy_args(media_path: Path, targets: list[tuple[str, str]]) -> list[str]:
-    """Build FFmpeg args for copy-streaming a pre-encoded MP4.
+    """Build FFmpeg args for copy-streaming a pre-encoded FLV.
 
     Uses -c copy (no re-encoding) for near-zero CPU usage.
     """
     args = [
         "-re",
         "-i", str(media_path),
+        "-map", "0:v:0",
+        "-map", "0:a:0",
         "-c", "copy",
-        "-f", "flv",
-        "-flvflags", "no_duration_filesize",
     ]
     if len(targets) == 1:
-        args.append(targets[0][1])
+        args.extend([
+            "-f", "flv",
+            "-flvflags", "no_duration_filesize",
+            targets[0][1]
+        ])
     else:
         tee_target = "|".join([f"[f=flv:onfail=ignore]{url}" for _, url in targets])
         args.extend(["-f", "tee", tee_target])
     return args
+
 
 
 def stream_show(media_path: Path, duration: float,
