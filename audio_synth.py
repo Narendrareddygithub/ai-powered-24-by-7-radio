@@ -198,30 +198,26 @@ def synthesize_audio(script: str) -> tuple[Path | None, float | None]:
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
-def pre_encode_show(aac_path: Path, visual: Path | None = None) -> tuple[Path, float]:
-    """Mux visual + AAC audio into a broadcast-ready FLV container file.
+def ensure_visual_loop_video(visual: Path | None = None) -> Path:
+    """Ensure a 2-second broadcast-spec video loop (720p 15fps 2500k CBR H.264) exists.
 
-    The FLV is encoded with YouTube-compliant settings (H.264 CBR 2500k,
-    AAC 128k, 2-second keyframes) so the streamer can push it to RTMP with
-    -c copy at near-zero CPU cost.
-
-    Returns (flv_path, duration_seconds).
+    Generating this 2-second video reference template once allows pre_encode_show()
+    to remux full show videos in < 1 second via -c:v copy (zero CPU re-encoding).
     """
     if visual is None:
         visual = config.STATIC_VISUAL
 
-    duration = probe_duration(aac_path)
-    flv_path = aac_path.with_suffix(".flv")
+    loop_mp4 = config.ASSETS_DIR / "visual_loop_2s.mp4"
+    if loop_mp4.exists():
+        return loop_mp4
 
+    print(f"  [audio_synth] 🎬 Generating 2-second visual video loop reference ({loop_mp4.name})...")
     loop_flag = ["-ignore_loop", "0"] if str(visual).endswith(".gif") else ["-loop", "1"]
-
     _run_ffmpeg(
         [
             *loop_flag,
             "-i", str(visual),
-            "-i", str(aac_path),
-            "-t", f"{duration:.3f}",
-            "-map", "0:v", "-map", "1:a",
+            "-t", "2.0",
             "-c:v", "libx264",
             "-pix_fmt", "yuv420p",
             "-preset", "ultrafast",
@@ -235,13 +231,44 @@ def pre_encode_show(aac_path: Path, visual: Path | None = None) -> tuple[Path, f
             "-sc_threshold", "0",
             "-vf", f"scale={config.VIDEO_WIDTH}:{config.VIDEO_HEIGHT}",
             "-r", str(config.VIDEO_FPS),
+            "-an",
+            str(loop_mp4),
+        ],
+        "generate visual loop video",
+    )
+    return loop_mp4
+
+
+def pre_encode_show(aac_path: Path, visual: Path | None = None) -> tuple[Path, float]:
+    """Mux visual video loop + AAC audio into a broadcast-ready FLV container file.
+
+    Uses stream_loop with -c:v copy -c:a copy for instant (< 2s) remuxing
+    with zero CPU load, avoiding long cold-start build delays on free containers.
+
+    Returns (flv_path, duration_seconds).
+    """
+    duration = probe_duration(aac_path)
+    flv_path = aac_path.with_suffix(".flv")
+
+    loop_mp4 = ensure_visual_loop_video(visual)
+
+    _run_ffmpeg(
+        [
+            "-stream_loop", "-1",
+            "-i", str(loop_mp4),
+            "-i", str(aac_path),
+            "-t", f"{duration:.3f}",
+            "-map", "0:v",
+            "-map", "1:a",
+            "-c:v", "copy",
             "-c:a", "copy",
             "-f", "flv",
             str(flv_path),
         ],
-        "pre-encode show",
+        "fast pre-encode show",
     )
 
     return flv_path, duration
+
 
 

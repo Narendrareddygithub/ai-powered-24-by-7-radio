@@ -1,10 +1,13 @@
 # Secrets — never commit
 .env
 
-# Generated broadcast audio
+# Generated broadcast audio/video
 queue/
 *.aac
 *.mp3
+*.mp4
+*.flv
+
 
 # Local state & logs
 radio.db
