@@ -305,8 +305,13 @@ def smoke_stream(c: Checks) -> None:
     )
     if aac_files:
         aac_path = aac_files[-1]
-        duration = audio_synth.probe_duration(aac_path)
-        print(f"  using queued show: {aac_path.name} ({duration / 60:.1f} min)")
+        mp4_path = aac_path.with_suffix(".mp4")
+        if not mp4_path.exists():
+            print(f"  pre-encoding show MP4: {aac_path.name}...")
+            mp4_path, duration = audio_synth.pre_encode_show(aac_path)
+        else:
+            duration = audio_synth.probe_duration(aac_path)
+        print(f"  using queued show MP4: {mp4_path.name} ({duration / 60:.1f} min)")
     else:
         import script_gen
         print("  queue empty — synthesizing a fresh show first")
@@ -316,6 +321,9 @@ def smoke_stream(c: Checks) -> None:
             return
         aac_path, duration = audio_synth.synthesize_audio(script)
         if not c.check("show synthesized", aac_path is not None):
+            return
+        mp4_path, duration = audio_synth.pre_encode_show(aac_path)
+        if not c.check("show pre-encoded", mp4_path is not None and mp4_path.exists()):
             return
 
     server_proc = None
@@ -327,7 +335,8 @@ def smoke_stream(c: Checks) -> None:
         c.check("HLS port 8888 is listening", _port_open(8888))
 
     key = config.STREAM_KEY or "radio"
-    proc = streamer.stream_show(config.STATIC_VISUAL, aac_path, duration)
+    proc = streamer.stream_show(mp4_path, duration)
+
 
     # Let the push run long enough to prove real bytes flow, then stop it —
     # nobody sits through a full 12-min show during a gate run.

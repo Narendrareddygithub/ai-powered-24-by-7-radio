@@ -196,3 +196,52 @@ def synthesize_audio(script: str) -> tuple[Path | None, float | None]:
         return aac_path, duration
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+def pre_encode_show(aac_path: Path, visual: Path | None = None) -> tuple[Path, float]:
+    """Mux visual + AAC audio into a broadcast-ready MP4.
+
+    The MP4 is encoded with YouTube-compliant settings (H.264 CBR 2500k,
+    AAC 128k, 2-second keyframes) so the streamer can push it with -c copy
+    at near-zero CPU cost.
+
+    Returns (mp4_path, duration_seconds).
+    """
+    if visual is None:
+        visual = config.STATIC_VISUAL
+
+    duration = probe_duration(aac_path)
+    mp4_path = aac_path.with_suffix(".mp4")
+
+    loop_flag = ["-ignore_loop", "0"] if str(visual).endswith(".gif") else ["-loop", "1"]
+
+    _run_ffmpeg(
+        [
+            *loop_flag,
+            "-i", str(visual),
+            "-i", str(aac_path),
+            "-t", f"{duration:.3f}",
+            "-map", "0:v", "-map", "1:a",
+            "-c:v", "libx264",
+            "-pix_fmt", "yuv420p",
+            "-preset", "ultrafast",
+            "-b:v", config.VIDEO_BITRATE,
+            "-minrate", config.VIDEO_BITRATE,
+            "-maxrate", config.VIDEO_BITRATE,
+            "-bufsize", config.VIDEO_BITRATE,
+            "-nal-hrd", "cbr",
+            "-g", str(config.VIDEO_GOP),
+            "-keyint_min", str(config.VIDEO_GOP),
+            "-sc_threshold", "0",
+            "-vf", f"scale={config.VIDEO_WIDTH}:{config.VIDEO_HEIGHT}",
+            "-r", str(config.VIDEO_FPS),
+            "-c:a", "copy",
+            "-movflags", "+faststart",
+            "-f", "mp4",
+            str(mp4_path),
+        ],
+        "pre-encode show",
+    )
+
+    return mp4_path, duration
+

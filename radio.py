@@ -59,6 +59,13 @@ def _produce_one_show(show_index: int) -> dict | None:
         print("  [Producer] ❌ Audio synthesis failed.")
         return None
 
+    # 5. Pre-encode broadcast MP4 (visual + AAC audio -> broadcast-ready MP4)
+    print(f"  [Producer] 🎬 Pre-encoding broadcast MP4...")
+    mp4_path, duration = audio_synth.pre_encode_show(aac_path)
+    if not mp4_path or not mp4_path.exists():
+        print("  [Producer] ❌ Pre-encoding show failed.")
+        return None
+
     session_id = f"session_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
 
     # Audit log & mark signals used
@@ -74,16 +81,18 @@ def _produce_one_show(show_index: int) -> dict | None:
     db.mark_signals_used(signal_ids)
 
     mins = duration / 60.0
-    print(f"  [Producer] ✅ Show #{show_index} ready in queue: {aac_path.name} ({mins:.1f} min, {words} words).")
+    print(f"  [Producer] ✅ Show #{show_index} pre-encoded & ready: {mp4_path.name} ({mins:.1f} min, {words} words).")
 
     return {
         "session_id": session_id,
+        "mp4_path": mp4_path,
         "aac_path": aac_path,
         "duration": duration,
         "script": script,
         "cited_urls": cited_urls,
         "show_index": show_index,
     }
+
 
 
 def _producer_loop():
@@ -138,7 +147,7 @@ def run_radio_loop():
             show = SHOW_QUEUE.get()  # Blocks if queue empty until show ready
 
             session_id = show["session_id"]
-            aac_path = show["aac_path"]
+            mp4_path = show.get("mp4_path", show["aac_path"])
             duration = show["duration"]
             mins = duration / 60.0
 
@@ -146,9 +155,9 @@ def run_radio_loop():
             db.set_aired_at(session_id, air_time)
 
             print(f"\n🔴 BROADCASTING LIVE to {config.STREAM_URL} ...")
-            print(f"  Playing show #{show['show_index']} ({aac_path.name}, {mins:.1f} min)...")
+            print(f"  Playing show #{show['show_index']} ({mp4_path.name}, {mins:.1f} min)...")
 
-            proc = streamer.stream_show(config.STATIC_VISUAL, aac_path, duration)
+            proc = streamer.stream_show(mp4_path, duration)
             completed = streamer.wait_for_stream(proc, duration)
 
             if completed:

@@ -30,54 +30,29 @@ class StreamTerminated(Exception):
     """The push ended early — server closed the connection or FFmpeg died."""
 
 
-def _build_args(visual: Path, audio: Path, duration: float, targets: list[tuple[str, str]]) -> list[str]:
-    """The single FFmpeg push command, as an argv list (never a shell string).
+def _build_copy_args(media_path: Path, targets: list[tuple[str, str]]) -> list[str]:
+    """Build FFmpeg args for copy-streaming a pre-encoded MP4.
 
-    -re reads input at 1.0x real-time rate pacing so the broadcast streams in
-    real-time like a live radio station rather than uploading at disk speed.
+    Uses -c copy (no re-encoding) for near-zero CPU usage.
     """
-    loop_flag = ["-ignore_loop", "0"] if str(visual).endswith(".gif") else ["-loop", "1"]
     args = [
-        *loop_flag,
         "-re",
-        "-i", str(visual),
-        "-re",
-        "-i", str(audio),
-        "-t", f"{duration:.3f}",
-        "-map", "0:v", "-map", "1:a",
-        "-c:v", "libx264",
-        "-pix_fmt", "yuv420p",
-        "-preset", "ultrafast",
-        "-b:v", config.VIDEO_BITRATE,
-        "-minrate", config.VIDEO_BITRATE,
-        "-maxrate", config.VIDEO_BITRATE,
-        "-bufsize", config.VIDEO_BITRATE,
-        "-nal-hrd", "cbr",
-        "-g", str(config.VIDEO_GOP),
-        "-keyint_min", str(config.VIDEO_GOP),
-        "-sc_threshold", "0",
-        "-vf", f"scale={config.VIDEO_WIDTH}:{config.VIDEO_HEIGHT}",
-        "-r", str(config.VIDEO_FPS),
-        "-c:a", "aac",
-        "-b:a", config.AUDIO_BITRATE,
-        "-ar", config.AUDIO_SAMPLE_RATE,
-        "-ac", config.AUDIO_CHANNELS,
-        "-af", "aresample=async=1",
-        "-fps_mode", "cfr",
-        "-flags", "+global_header",
+        "-i", str(media_path),
+        "-c", "copy",
+        "-f", "flv",
+        "-flvflags", "no_duration_filesize",
     ]
     if len(targets) == 1:
-        args.extend(["-f", "flv", targets[0][1]])
+        args.append(targets[0][1])
     else:
-        # Tee muxer duplicates encoded stream cleanly to all active RTMP endpoints
         tee_target = "|".join([f"[f=flv:onfail=ignore]{url}" for _, url in targets])
         args.extend(["-f", "tee", tee_target])
     return args
 
 
-def stream_show(visual: Path, audio: Path, duration: float,
+def stream_show(media_path: Path, duration: float,
                  on_exit: callable = None) -> subprocess.Popen:
-    """Start the FFmpeg push in the background and return the Popen handle.
+    """Start the FFmpeg push in the background using pre-encoded MP4 and -c copy.
 
     Includes automatic retries for transient RTMP socket reset / I/O errors on startup.
     Supports single or dual simultaneous broadcast to YouTube Live + Twitch.
@@ -89,8 +64,9 @@ def stream_show(visual: Path, audio: Path, duration: float,
         )
 
     target_names = " + ".join([name for name, _ in targets])
-    args = _build_args(visual, audio, duration, targets)
-    print(f"  streaming {audio.name} ({duration / 60:.1f} min) -> {target_names}")
+    args = _build_copy_args(media_path, targets)
+    print(f"  streaming {media_path.name} ({duration / 60:.1f} min) -> {target_names} [c:copy mode]")
+
 
     proc = None
     for attempt in range(1, 4):
